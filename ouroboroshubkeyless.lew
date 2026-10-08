@@ -1,0 +1,241 @@
+-- 1. Khởi tạo dịch vụ & Cấu hình File lưu Key
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+
+local KEY_FILE = "OuroborosHub_KeyData.json"
+local EXPIRE_TIME = 86400 -- 24 giờ tính bằng giây (24 * 60 * 60)
+
+-- Hàm kiểm tra xem Key đã lưu còn hạn 24h hay không
+local function HasValidKey()
+    if not (isfile and readfile) then return false end
+    if isfile(KEY_FILE) then
+        local success, data = pcall(function()
+            return game:GetService("HttpService"):JSONDecode(readfile(KEY_FILE))
+        end)
+        if success and type(data) == "table" and data.ExpiryTime then
+            -- So sánh thời gian hiện tại với thời gian lưu (os.time() trả về giây thực tế)
+            if os.time() < data.ExpiryTime then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- Hàm lưu thời gian hết hạn (24 giờ sau)
+local function SaveKey()
+    if writefile and game:GetService("HttpService") then
+        local data = {
+            ExpiryTime = os.time() + EXPIRE_TIME
+        }
+        pcall(function()
+            writefile(KEY_FILE, game:GetService("HttpService"):JSONEncode(data))
+        end)
+    end
+end
+
+-- 2. Tự động bỏ qua bảng Key nếu đã lưu trong vòng 24 giờ
+if HasValidKey() then
+    local success, err = pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/joustingmatch/Ouroboros/main/loader.lua"))()
+    end)
+    if not success then
+        warn("Error loading main script: " .. tostring(err))
+    end
+    return
+end
+
+-- Xóa UI cũ nếu có
+if CoreGui:FindFirstChild("OuroborosKeySystem") then
+    CoreGui.OuroborosKeySystem:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "OuroborosKeySystem"
+ScreenGui.Parent = CoreGui
+ScreenGui.IgnoreGuiInset = true
+
+-- Khung mờ nền (Overlay)
+local Overlay = Instance.new("Frame")
+Overlay.Size = UDim2.new(1, 0, 1, 0)
+Overlay.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+Overlay.BackgroundTransparency = 0.5
+Overlay.Parent = ScreenGui
+
+-- 3. Khung chính (Modern Dark & Pastel Pink)
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 380, 0, 245)
+MainFrame.Position = UDim2.new(0.5, -190, 0.5, -122)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 14)
+UICorner.Parent = MainFrame
+
+-- Viền sáng hồng nhạt
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(255, 150, 180)
+UIStroke.Transparency = 0.7
+UIStroke.Thickness = 1.5
+UIStroke.Parent = MainFrame
+
+-- Tiêu đề chính
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.Position = UDim2.new(0, 0, 0, 10)
+Title.BackgroundTransparency = 1
+Title.Text = "Ouroboros Hub"
+Title.TextColor3 = Color3.fromRGB(255, 182, 193)
+Title.TextSize = 22
+Title.Font = Enum.Font.GothamBold
+Title.Parent = MainFrame
+
+-- Phụ đề
+local Subtitle = Instance.new("TextLabel")
+Subtitle.Size = UDim2.new(1, 0, 0, 20)
+Subtitle.Position = UDim2.new(0, 0, 0, 42)
+Subtitle.BackgroundTransparency = 1
+Subtitle.Text = "Please Enter Your Key"
+Subtitle.TextColor3 = Color3.fromRGB(140, 140, 160)
+Subtitle.TextSize = 13
+Subtitle.Font = Enum.Font.GothamMedium
+Subtitle.Parent = MainFrame
+
+-- Ô nhập Key
+local TextBox = Instance.new("TextBox")
+TextBox.Size = UDim2.new(0.85, 0, 0, 48)
+TextBox.Position = UDim2.new(0.075, 0, 0, 72)
+TextBox.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+TextBox.PlaceholderText = "Enter your key here..."
+TextBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
+TextBox.Text = ""
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextBox.TextSize = 14
+TextBox.Font = Enum.Font.GothamMedium
+TextBox.ClearTextOnFocus = false
+TextBox.Parent = MainFrame
+
+local TextBoxCorner = Instance.new("UICorner")
+TextBoxCorner.CornerRadius = UDim.new(0, 8)
+TextBoxCorner.Parent = TextBox
+
+local TextBoxStroke = Instance.new("UIStroke")
+TextBoxStroke.Color = Color3.fromRGB(50, 50, 65)
+TextBoxStroke.Thickness = 1
+TextBoxStroke.Parent = TextBox
+
+-- Nút Xác Nhận (Submit)
+local SubmitBtn = Instance.new("TextButton")
+SubmitBtn.Size = UDim2.new(0.41, 0, 0, 40)
+SubmitBtn.Position = UDim2.new(0.075, 0, 0, 135)
+SubmitBtn.BackgroundColor3 = Color3.fromRGB(255, 130, 160)
+SubmitBtn.Text = "Submit"
+SubmitBtn.TextColor3 = Color3.fromRGB(25, 25, 32)
+SubmitBtn.TextSize = 15
+SubmitBtn.Font = Enum.Font.GothamBold
+SubmitBtn.Parent = MainFrame
+
+local SubmitCorner = Instance.new("UICorner")
+SubmitCorner.CornerRadius = UDim.new(0, 8)
+SubmitCorner.Parent = SubmitBtn
+
+-- Nút Lấy Key (Get Key)
+local GetKeyBtn = Instance.new("TextButton")
+GetKeyBtn.Size = UDim2.new(0.41, 0, 0, 40)
+GetKeyBtn.Position = UDim2.new(0.515, 0, 0, 135)
+GetKeyBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+GetKeyBtn.Text = "Get Key"
+GetKeyBtn.TextColor3 = Color3.fromRGB(220, 220, 240)
+GetKeyBtn.TextSize = 15
+GetKeyBtn.Font = Enum.Font.GothamBold
+GetKeyBtn.Parent = MainFrame
+
+local GetKeyCorner = Instance.new("UICorner")
+GetKeyCorner.CornerRadius = UDim.new(0, 8)
+GetKeyCorner.Parent = GetKeyBtn
+
+local GetKeyStroke = Instance.new("UIStroke")
+GetKeyStroke.Color = Color3.fromRGB(60, 60, 80)
+GetKeyStroke.Thickness = 1
+GetKeyStroke.Parent = GetKeyBtn
+
+-- Thông báo lỗi / trạng thái
+local ErrorLabel = Instance.new("TextLabel")
+ErrorLabel.Size = UDim2.new(1, 0, 0, 20)
+ErrorLabel.Position = UDim2.new(0, 0, 0, 195)
+ErrorLabel.BackgroundTransparency = 1
+ErrorLabel.Text = ""
+ErrorLabel.TextColor3 = Color3.fromRGB(255, 90, 90)
+ErrorLabel.TextSize = 13
+ErrorLabel.Font = Enum.Font.GothamMedium
+ErrorLabel.Parent = MainFrame
+
+-- Hiệu ứng lắc khung khi sai Key
+local function ShakeFrame()
+    local originalPos = UDim2.new(0.5, -190, 0.5, -122)
+    local intensity = 8
+    
+    task.spawn(function()
+        for i = 1, 4 do
+            TweenService:Create(MainFrame, TweenInfo.new(0.04), {Position = originalPos + UDim2.new(0, intensity, 0, 0)}):Play()
+            task.wait(0.04)
+            TweenService:Create(MainFrame, TweenInfo.new(0.04), {Position = originalPos + UDim2.new(0, -intensity, 0, 0)}):Play()
+            task.wait(0.04)
+            intensity = intensity * 0.6
+        end
+        TweenService:Create(MainFrame, TweenInfo.new(0.05), {Position = originalPos}):Play()
+    end)
+end
+
+-- 4. Xử lý logic Key
+local CORRECT_KEY = "OuroborosHubKeyNalwkwj - Lappqjwnlaiowpje"
+
+SubmitBtn.MouseButton1Click:Connect(function()
+    if TextBox.Text == CORRECT_KEY then
+        ErrorLabel.TextColor3 = Color3.fromRGB(120, 255, 140)
+        ErrorLabel.Text = "Success! Loading..."
+        
+        -- Lưu vào file thật để nhớ suốt 24 giờ (kể cả khi đổi server/thoát game)
+        SaveKey()
+        
+        -- Hiệu ứng ẩn mượt mà
+        TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
+        TweenService:Create(Overlay, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+        task.wait(0.35)
+        ScreenGui:Destroy()
+        
+        -- Chạy script chính
+        local success, err = pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/joustingmatch/Ouroboros/main/loader.lua"))()
+        end)
+        if not success then
+            warn("Error loading main script: " .. tostring(err))
+        end
+    else
+        ErrorLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        ErrorLabel.Text = "Incorrect key! Please try again."
+        ShakeFrame()
+        TextBox.Text = "" -- Xoá trắng ô khi nhập sai
+    end
+end)
+
+GetKeyBtn.MouseButton1Click:Connect(function()
+    setclipboard("https://link4m.org/axptXJ")
+    
+    local requestFunc = syn and syn.request or http and http.request or http_request or request
+    if requestFunc then
+        pcall(function()
+            requestFunc({
+                Url = "https://link4m.org/axptXJ",
+                Method = "GET"
+            })
+        end)
+    end
+    
+    ErrorLabel.TextColor3 = Color3.fromRGB(255, 182, 193)
+    ErrorLabel.Text = "Link copied to clipboard!"
+end)
